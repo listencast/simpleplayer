@@ -1,0 +1,419 @@
+<html><head><base href="." />
+<title>ListenCast Simple Player</title>
+<style>
+:root {
+  --primary: #00bf4d;
+  --dark: #009f3f;
+  --background: #2b2b2b;
+  --surface: #333333;
+  --text: #00ff66;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: 'Arial Narrow', Arial, sans-serif;
+  background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E"), #1a1a1a;
+  color: var(--text);
+}
+
+.player {
+  max-width: 275px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, #2b2b2b 0%, #1a1a1a 100%);
+  border: 2px outset #444;
+  padding: 3px;
+  box-shadow: 3px 3px 5px rgba(0,0,0,0.5);
+  font-size: 12px;
+  image-rendering: pixelated;
+}
+
+.player-header {
+  background: linear-gradient(90deg, #2f2f2f 0%, #444 100%);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.player-header h2 {
+  font-size: 14px;
+  margin: 0;
+  color: #00ff66;
+  text-shadow: 1px 1px 1px #000;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 4px 0;
+  background: #000;
+  padding: 4px;
+  border: 1px inset #444;
+}
+
+button {
+  background: #2b2b2b;
+  border: 1px outset #444;
+  width: 23px;
+  height: 18px;
+  padding: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button:active {
+  border-style: inset;
+}
+
+button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.progress {
+  background: #000;
+  height: 10px;
+  border: 1px inset #444;
+  position: relative;
+  cursor: pointer;
+  margin: 4px 0;
+}
+
+.progress-bar {
+  background: var(--text);
+  height: 8px;
+  width: 0%;
+  transition: width 0.1s;
+}
+
+.playlist {
+  background: #000;
+  border: 1px inset #444;
+  height: 150px;
+  overflow-y: auto;
+  margin-top: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+.playlist-item {
+  padding: 2px 4px;
+  cursor: pointer;
+  color: #00ff66;
+}
+
+.playlist-item:hover {
+  background: #004422;
+}
+
+.playlist-item.active {
+  background: #006633;
+}
+
+#volumeControl {
+  width: 60px;
+  height: 6px;
+  -webkit-appearance: none;
+  background: #000;
+  border: 1px inset #444;
+}
+
+#volumeControl::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 15px;
+  background: #2b2b2b;
+  border: 1px outset #444;
+  cursor: pointer;
+}
+
+.now-playing {
+  background: #000;
+  border: 1px inset #444;
+  padding: 2px;
+  height: 14px;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  color: #00ff66;
+}
+
+.scroll-text {
+  animation: scroll-left 15s linear infinite;
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.add-stream-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.add-stream-container input {
+  padding: 2px;
+  border: 1px inset #444;
+  background: #000;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.add-stream-container button {
+  width: 100%;
+  height: 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b2b2b;
+  border: 1px outset #444;
+}
+
+/* Time display */
+.time-display {
+  font-family: 'Digital', 'Courier New', monospace;
+  background: #000;
+  padding: 2px 4px;
+  border: 1px inset #444;
+  color: #00ff66;
+}
+</style>
+</head>
+<body>
+
+<div class="player">
+  <div class="player-header">
+    <h2>Listen Cast</h2>
+  </div>
+
+  <div class="now-playing">
+    <div class="scroll-text" id="nowPlayingText">
+      Welcome to Listen Cast
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button id="prevBtn" title="Previous">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M6,6H8V18H6M9.5,12L18,18V6L9.5,12Z"/></svg>
+    </button>
+    
+    <button id="playBtn" title="Play/Pause">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>
+    </button>
+    
+    <button id="nextBtn" title="Next">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16,18H18V6H16M6,18L14.5,12L6,6V18Z"/></svg>
+    </button>
+    
+    <input type="range" id="volumeControl" min="0" max="1" step="0.1" value="1">
+    
+    <span class="time-display"><span id="currentTime">0:00</span> / <span id="duration">0:00</span></span>
+  </div>
+  
+  <div class="progress" id="progressBar">
+    <div class="progress-bar"></div>
+  </div>
+  
+  <div class="playlist" id="playlist">
+    <div class="playlist-item" data-type="radio" data-url="https://streams.kexp.org/kexp">KEXP Radio</div>
+    <div class="playlist-item" data-type="radio" data-url="https://npr-ice.streamguys1.com/live.mp3">NPR Radio</div>
+    <div class="playlist-item" data-type="local" data-url="">Add Local MP3 (Click to browse)</div>
+  </div>
+
+  <div class="add-stream-container">
+    <input type="text" id="streamUrl" placeholder="Enter stream URL">
+    <input type="text" id="streamName" placeholder="Enter stream name">
+    <button id="addStreamBtn">Add Stream</button>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="audio/mp3" style="display: none">
+
+<script>
+const audio = new Audio();
+const playBtn = document.getElementById('playBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const volumeControl = document.getElementById('volumeControl');
+const progressBar = document.getElementById('progressBar');
+const progressBarFill = progressBar.querySelector('.progress-bar');
+const currentTimeSpan = document.getElementById('currentTime');
+const durationSpan = document.getElementById('duration');
+const playlist = document.getElementById('playlist');
+const fileInput = document.getElementById('fileInput');
+const nowPlayingText = document.getElementById('nowPlayingText');
+const streamUrl = document.getElementById('streamUrl');
+const streamName = document.getElementById('streamName');
+const addStreamBtn = document.getElementById('addStreamBtn');
+
+let isPlaying = false;
+let currentTrackIndex = -1;
+
+addStreamBtn.addEventListener('click', () => {
+  const url = streamUrl.value.trim();
+  const name = streamName.value.trim();
+  
+  if (url && name) {
+    const newItem = document.createElement('div');
+    newItem.className = 'playlist-item';
+    newItem.dataset.type = 'radio';
+    newItem.dataset.url = url;
+    newItem.textContent = name;
+    playlist.appendChild(newItem);
+    
+    streamUrl.value = '';
+    streamName.value = '';
+  }
+});
+
+playBtn.addEventListener('click', togglePlay);
+prevBtn.addEventListener('click', playPrevious);
+nextBtn.addEventListener('click', playNext);
+volumeControl.addEventListener('input', updateVolume);
+progressBar.addEventListener('click', seek);
+audio.addEventListener('timeupdate', updateProgress);
+audio.addEventListener('ended', () => playNext());
+
+audio.volume = volumeControl.value;
+
+playlist.addEventListener('click', (e) => {
+  const item = e.target.closest('.playlist-item');
+  if (!item) return;
+  
+  if (item.dataset.type === 'local') {
+    fileInput.click();
+  } else {
+    playTrack(item.dataset.url);
+    updateActiveItem(item);
+    nowPlayingText.textContent = item.textContent;
+  }
+});
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    const newItem = document.createElement('div');
+    newItem.className = 'playlist-item';
+    newItem.dataset.type = 'local';
+    newItem.dataset.url = url;
+    newItem.textContent = file.name;
+    playlist.appendChild(newItem);
+    playTrack(url);
+    updateActiveItem(newItem);
+    nowPlayingText.textContent = `Now Playing: ${file.name}`;
+  }
+});
+
+function togglePlay() {
+  if (isPlaying) {
+    audio.pause();
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>';
+  } else {
+    audio.play();
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z"/></svg>';
+  }
+  isPlaying = !isPlaying;
+}
+
+function playTrack(url) {
+  audio.src = url;
+  audio.play();
+  isPlaying = true;
+  playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z"/></svg>';
+}
+
+function updateActiveItem(item) {
+  playlist.querySelectorAll('.playlist-item').forEach(i => i.classList.remove('active'));
+  item.classList.add('active');
+}
+
+function playPrevious() {
+  const items = Array.from(playlist.children);
+  const currentItem = playlist.querySelector('.active');
+  const currentIndex = items.indexOf(currentItem);
+  const prevIndex = (currentIndex - 1 + items.length) % items.length;
+  const prevItem = items[prevIndex];
+  if (prevItem.dataset.url) {
+    playTrack(prevItem.dataset.url);
+    updateActiveItem(prevItem);
+    nowPlayingText.textContent = `Now Playing: ${prevItem.textContent}`;
+  }
+}
+
+function playNext() {
+  const items = Array.from(playlist.children);
+  const currentItem = playlist.querySelector('.active');
+  const currentIndex = items.indexOf(currentItem);
+  const nextIndex = (currentIndex + 1) % items.length;
+  const nextItem = items[nextIndex];
+  if (nextItem.dataset.url) {
+    playTrack(nextItem.dataset.url);
+    updateActiveItem(nextItem);
+    nowPlayingText.textContent = `Now Playing: ${nextItem.textContent}`;
+  }
+}
+
+function updateVolume() {
+  audio.volume = volumeControl.value;
+}
+
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  seconds = Math.floor(seconds % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function updateProgress() {
+  const percent = (audio.currentTime / audio.duration) * 100 || 0;
+  progressBarFill.style.width = `${percent}%`;
+  currentTimeSpan.textContent = formatTime(audio.currentTime);
+  durationSpan.textContent = formatTime(audio.duration || 0);
+}
+
+function seek(e) {
+  const rect = progressBar.getBoundingClientRect();
+  const percent = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = percent * audio.duration;
+}
+
+audio.addEventListener('error', (e) => {
+  console.error('Error playing audio:', e);
+  alert('Error playing audio. Please try another track or check your connection.');
+});
+
+audio.addEventListener('loadedmetadata', () => {
+  if (audio.mozHasAudio) {
+    const icecast = new XMLHttpRequest();
+    icecast.open('GET', audio.currentSrc, true);
+    icecast.onreadystatechange = () => {
+      if (icecast.readyState === 4) {
+        const metadata = icecast.getResponseHeader('icy-metaint');
+        if (metadata) {
+          nowPlayingText.textContent = `Stream Info: ${metadata}`;
+        }
+      }
+    };
+    icecast.send();
+  }
+});
+</script>
+
+</body></html>
